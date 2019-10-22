@@ -8,3 +8,7 @@ edition = "2018"
 
 [dependencies]
 reqwest = ">= 0.9.22"
+dotenv = ">= 0.15.0"
+regex = ">= 0"
+serde = ">= 0"
+serde_json = ">= 0"
