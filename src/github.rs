@@ -15,8 +15,26 @@ impl Github {
         }
     }
 
-    pub fn query(self, query: String) -> String {
-        self.github_response(query)
+    pub fn query(self, query: String) -> Vec<Node> {
+        let data = self.github_response(query);
+
+        match serde_json::from_str::<Response>(&data) {
+            Ok(response) => response
+                .data
+                .repository
+                .pull_requests
+                .edges
+                .into_iter()
+                .map(|edge| edge.node)
+                .collect(),
+            Err(_) => {
+                println!(
+                    "ERROR: Cannot parse JSON result \
+                     returned from Github."
+                );
+                std::process::exit(253);
+            }
+        }
     }
 
     fn github_response(self, query: String) -> String {
@@ -30,7 +48,10 @@ impl Github {
         let mut result = match resp {
             Ok(val) => val,
             Err(_) => {
-                println!("ERROR: Unexpected result returned from Github.");
+                println!(
+                    "ERROR: Unexpected http response \
+                     returned from Github."
+                );
                 std::process::exit(254)
             }
         };

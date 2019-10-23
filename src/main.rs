@@ -41,21 +41,7 @@ fn main() {
         request_url.to_string(),
     );
 
-    let data = github.query(query.clone());
-
-    let response: github::Response = serde_json::from_str(&data).unwrap();
-    let content: Vec<github::Node> = response
-        .data
-        .repository
-        .pull_requests
-        .edges
-        .into_iter()
-        .filter(|edge| edge.node.mergeable != "MERGEABLE")
-        .map(|edge| edge.node)
-        .collect();
-
-    // let waiting = content.into_iter().any(|node| node.mergeable == "UNKNOWN");
-    // println!("{:?}", waiting);
+    let content = github.query(query.clone());
 
     let conflicting: Vec<u32> = content
         .into_iter()
