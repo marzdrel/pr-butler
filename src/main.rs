@@ -80,8 +80,15 @@ fn main() {
             let conflicting =
                 result.extract(PullRequestStates::Conflicting);
             for id in conflicting.into_iter() {
-                let _update = update_string(id, re.clone());
-                github.query(query.clone());
+                let update = update_string(id, re.clone());
+
+                // how to reuse the struct?
+
+                let github = github::Github::new(
+                    github_token.to_string(),
+                    request_url.to_string(),
+                );
+                github.mutate(update.clone());
             }
             break;
         } else {
