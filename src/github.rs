@@ -1,4 +1,35 @@
+use reqwest::{Response as ReqwestResponse, Result};
 use serde::Deserialize;
+
+pub struct Github {
+    pub token: String,
+    pub url: String,
+    client: reqwest::Client,
+}
+
+impl Github {
+    pub fn new(token: String, url: String) -> Self {
+        Github {
+            token: token,
+            url: url,
+            client: reqwest::Client::new(),
+        }
+    }
+}
+
+pub trait Querable {
+    fn query(self, query: String) -> Result<ReqwestResponse>;
+}
+
+impl Querable for Github {
+    fn query(self, query: String) -> Result<ReqwestResponse> {
+        self.client
+            .post(&self.url)
+            .body(query)
+            .bearer_auth(self.token)
+            .send()
+    }
+}
 
 #[derive(Deserialize)]
 pub struct Response {

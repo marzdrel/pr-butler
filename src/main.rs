@@ -2,17 +2,17 @@ extern crate dotenv;
 extern crate reqwest;
 extern crate serde_json;
 
+mod github;
+
 use dotenv::dotenv;
 use std::env;
 
-mod github;
+use github::Querable;
 
 fn main() {
     dotenv().ok();
 
     let request_url = "https://api.github.com/graphql";
-    let client = reqwest::Client::new();
-
     let github_token = env::var("GITHUB_TOKEN").unwrap();
     let github_org = env::var("GITHUB_ORG").unwrap();
     let github_repo = env::var("GITHUB_REPO").unwrap();
@@ -38,11 +38,9 @@ fn main() {
     )
     .replace("\n", "");
 
-    let resp = client
-        .post(request_url)
-        .body(query)
-        .bearer_auth(github_token)
-        .send();
+    let github = github::Github::new(github_token.to_string(), request_url.to_string());
+
+    let resp = github.query(query.clone());
 
     let mut response = match resp {
         Ok(val) => val,
