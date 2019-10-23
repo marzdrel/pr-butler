@@ -1,5 +1,40 @@
 use serde::Deserialize;
 
+pub trait Extract {
+    fn extract(&self, key: PullRequestStates) -> Vec<u32>;
+}
+
+impl Extract for Vec<Node> {
+    fn extract(&self, key: PullRequestStates) -> Vec<u32> {
+        self.into_iter()
+            .filter(|node| key == node.mergeable)
+            .map(|node| node.number)
+            .collect()
+    }
+}
+
+pub enum PullRequestStates {
+    Mergeable,
+    Conflicting,
+    Unknown,
+}
+
+impl PartialEq<String> for PullRequestStates {
+    fn eq(&self, other: &String) -> bool {
+        self.as_str() == other
+    }
+}
+
+impl PullRequestStates {
+    pub fn as_str(&self) -> &'static str {
+        match *self {
+            PullRequestStates::Mergeable => "MERGEABLE",
+            PullRequestStates::Conflicting => "CONFLICTING",
+            PullRequestStates::Unknown => "UNKNOWN",
+        }
+    }
+}
+
 pub struct Github {
     pub token: String,
     pub url: String,
