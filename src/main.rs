@@ -38,20 +38,10 @@ fn main() {
 
     let github = github::Github::new(github_token.to_string(), request_url.to_string());
 
-    let resp = github.query(query.clone());
+    let data = github.query(query.clone());
 
-    let mut response = match resp {
-        Ok(val) => val,
-        Err(_) => {
-            println!("ERROR: Unexpected result returned from Github.");
-            std::process::exit(254)
-        }
-    };
-
-    let data = &response.text().unwrap();
-
-    let gh_response: github::Response = serde_json::from_str(data).unwrap();
-    let content: Vec<github::Node> = gh_response
+    let response: github::Response = serde_json::from_str(&data).unwrap();
+    let content: Vec<github::Node> = response
         .data
         .repository
         .pull_requests

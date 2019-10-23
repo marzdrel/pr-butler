@@ -1,4 +1,3 @@
-use reqwest::{Response as ReqwestResponse, Result};
 use serde::Deserialize;
 
 pub struct Github {
@@ -16,12 +15,27 @@ impl Github {
         }
     }
 
-    pub fn query(self, query: String) -> Result<ReqwestResponse> {
-        self.client
+    pub fn query(self, query: String) -> String {
+        self.github_response(query)
+    }
+
+    fn github_response(self, query: String) -> String {
+        let resp = self
+            .client
             .post(&self.url)
             .body(query)
             .bearer_auth(self.token)
-            .send()
+            .send();
+
+        let mut result = match resp {
+            Ok(val) => val,
+            Err(_) => {
+                println!("ERROR: Unexpected result returned from Github.");
+                std::process::exit(254)
+            }
+        };
+
+        result.text().unwrap()
     }
 }
 
