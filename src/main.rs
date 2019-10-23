@@ -7,8 +7,6 @@ mod github;
 use dotenv::dotenv;
 use std::env;
 
-use github::Querable;
-
 fn main() {
     dotenv().ok();
 

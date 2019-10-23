@@ -15,14 +15,8 @@ impl Github {
             client: reqwest::Client::new(),
         }
     }
-}
 
-pub trait Querable {
-    fn query(self, query: String) -> Result<ReqwestResponse>;
-}
-
-impl Querable for Github {
-    fn query(self, query: String) -> Result<ReqwestResponse> {
+    pub fn query(self, query: String) -> Result<ReqwestResponse> {
         self.client
             .post(&self.url)
             .body(query)
