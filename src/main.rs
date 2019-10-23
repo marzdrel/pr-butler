@@ -3,40 +3,9 @@ extern crate reqwest;
 extern crate serde_json;
 
 use dotenv::dotenv;
-use serde::Deserialize;
 use std::env;
 
-#[derive(Deserialize)]
-struct GhResponse {
-    data: GhData,
-}
-
-#[derive(Deserialize)]
-struct GhData {
-    repository: GhRepository,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct GhRepository {
-    pull_requests: GhPullRequests,
-}
-
-#[derive(Deserialize)]
-struct GhPullRequests {
-    edges: Vec<GhEdge>,
-}
-
-#[derive(Deserialize)]
-struct GhEdge {
-    node: GhNode,
-}
-
-#[derive(Deserialize, Debug)]
-struct GhNode {
-    number: u32,
-    mergeable: String,
-}
+mod github;
 
 fn main() {
     dotenv().ok();
@@ -78,15 +47,15 @@ fn main() {
     let mut response = match resp {
         Ok(val) => val,
         Err(_) => {
-            println!("ERROR: Unexpected resul returned from Github.");
+            println!("ERROR: Unexpected result returned from Github.");
             std::process::exit(254)
         }
     };
 
     let data = &response.text().unwrap();
 
-    let gh_response: GhResponse = serde_json::from_str(data).unwrap();
-    let content: Vec<GhNode> = gh_response
+    let gh_response: github::Response = serde_json::from_str(data).unwrap();
+    let content: Vec<github::Node> = gh_response
         .data
         .repository
         .pull_requests
