@@ -45,17 +45,10 @@ fn main() {
 
     let result = github.query(query.clone());
 
-    let a = result.extract(PullRequestStates::Mergeable).len();
-    let b = result.extract(PullRequestStates::Unknown).len();
-    let c = result.extract(PullRequestStates::Conflicting).len();
-
-    print!("{} {} {}", a, b, c);
-
     for attempt in 1..=10 {
         if result.extract(PullRequestStates::Unknown).len() == 0 {
         } else {
             if attempt == 10 { /* error */ }
-            print!("Retry: {}\n", attempt);
             let delay = time::Duration::new(2 * attempt, 0);
             thread::sleep(delay);
         }
