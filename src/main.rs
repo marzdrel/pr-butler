@@ -36,7 +36,10 @@ fn main() {
     )
     .replace("\n", "");
 
-    let github = github::Github::new(github_token.to_string(), request_url.to_string());
+    let github = github::Github::new(
+        github_token.to_string(),
+        request_url.to_string(),
+    );
 
     let data = github.query(query.clone());
 
