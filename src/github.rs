@@ -1,20 +1,22 @@
 use serde::Deserialize;
 
+pub static LABEL: &str = "MDU6TGFiZWwxNjM0NjMyMDAw";
+
 pub trait Extract {
-    fn extract(&self, key: PullRequestStates) -> Vec<u32>;
+    fn extract(&self, key: PullRequestStates) -> Vec<String>;
 }
 
 impl Extract for Vec<Node> {
-    fn extract(&self, key: PullRequestStates) -> Vec<u32> {
+    fn extract(&self, key: PullRequestStates) -> Vec<String> {
         self.into_iter()
             .filter(|node| key == node.mergeable)
-            .map(|node| node.number)
+            .map(|node| node.id.clone())
             .collect()
     }
 }
 
 pub enum PullRequestStates {
-    Mergeable,
+    // Mergeable,
     Conflicting,
     Unknown,
 }
@@ -28,7 +30,7 @@ impl PartialEq<String> for PullRequestStates {
 impl PullRequestStates {
     pub fn as_str(&self) -> &'static str {
         match *self {
-            PullRequestStates::Mergeable => "MERGEABLE",
+            // PullRequestStates::Mergeable => "MERGEABLE",
             PullRequestStates::Conflicting => "CONFLICTING",
             PullRequestStates::Unknown => "UNKNOWN",
         }
@@ -38,6 +40,7 @@ impl PullRequestStates {
 pub struct Github {
     pub token: String,
     pub url: String,
+    pub label: String,
     client: reqwest::Client,
 }
 
@@ -46,8 +49,17 @@ impl Github {
         Github {
             token: token,
             url: url,
+            label: String::from(""),
             client: reqwest::Client::new(),
         }
+    }
+
+    pub fn mutate(self, query: String) -> String {
+        let data = self.github_response(query);
+
+        println!("{:?}", data);
+
+        data
     }
 
     pub fn query(self, query: String) -> Vec<Node> {
@@ -62,10 +74,11 @@ impl Github {
                 .into_iter()
                 .map(|edge| edge.node)
                 .collect(),
-            Err(_) => {
+            Err(err) => {
                 println!(
-                    "ERROR: Cannot parse JSON result \
-                     returned from Github."
+                    "ERROR: Cannot parse JSON result returned from Github.\n\n\
+                     Message: {}\nOutput: {}\n",
+                    err, &data,
                 );
                 std::process::exit(253);
             }
@@ -95,28 +108,34 @@ impl Github {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Response {
     pub data: Data,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Data {
     pub repository: Repository,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Repository {
     pub pull_requests: PullRequests,
+    pub label: Label,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct PullRequests {
     pub edges: Vec<Edge>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
+pub struct Label {
+    pub id: String,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct Edge {
     pub node: Node,
 }
@@ -124,5 +143,6 @@ pub struct Edge {
 #[derive(Deserialize, Debug)]
 pub struct Node {
     pub number: u32,
+    pub id: String,
     pub mergeable: String,
 }
