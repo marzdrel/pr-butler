@@ -5,7 +5,9 @@ extern crate serde_json;
 mod github;
 
 use dotenv::dotenv;
+use github::{Extract, PullRequestStates};
 use std::env;
+use std::{thread, time};
 
 fn main() {
     dotenv().ok();
@@ -41,13 +43,21 @@ fn main() {
         request_url.to_string(),
     );
 
-    let content = github.query(query.clone());
+    let result = github.query(query.clone());
 
-    let conflicting: Vec<u32> = content
-        .into_iter()
-        .filter(|node| node.mergeable == "CONFLICTING")
-        .map(|node| node.number)
-        .collect();
+    let a = result.extract(PullRequestStates::Mergeable).len();
+    let b = result.extract(PullRequestStates::Unknown).len();
+    let c = result.extract(PullRequestStates::Conflicting).len();
 
-    println!("{:?}", &conflicting);
+    print!("{} {} {}", a, b, c);
+
+    for attempt in 1..=10 {
+        if result.extract(PullRequestStates::Unknown).len() == 0 {
+        } else {
+            if attempt == 10 { /* error */ }
+            print!("Retry: {}\n", attempt);
+            let delay = time::Duration::new(2 * attempt, 0);
+            thread::sleep(delay);
+        }
+    }
 }
