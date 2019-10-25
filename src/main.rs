@@ -34,6 +34,10 @@ fn update_string(object_id: String, re: Regex) -> String {
         .to_string()
 }
 
+fn wrap_query(inner: &str) -> String {
+    format!("{{ \"query\": \"{}\" }}", inner)
+}
+
 fn main() {
     dotenv().ok();
 
@@ -43,37 +47,41 @@ fn main() {
     let github_org = env::var("GITHUB_ORG").unwrap();
     let github_repo = env::var("GITHUB_REPO").unwrap();
 
-    let query = format!(
-        r#"
-          {{ 
-            "query": "{{
-              repository(owner:\"{}\", name:\"{}\") {{
-                label(name: \"conflicting\") {{
-                  id
-                }}
-                pullRequests(last: 100, states: OPEN) {{
-                  edges {{
-                    node {{
-                      id
-                      number
-                      mergeable
-                    }}
-                  }}
-                }}
-              }}
-            }}"
-          }}
-        "#,
-        github_org, github_repo,
-    )
-    .replace("\n", "");
+    let query_template = r#"
+      { 
+        repository(owner:"$GITHUB_ORG", name:"$GITHUB_REPO") {
+          label(name: "conflicting") {
+            id
+          }
+          pullRequests(last: 100, states: OPEN) {
+            edges {
+              node {
+                id
+                number
+                mergeable
+              }
+            }
+          }
+        }
+      }
+    "#;
+
+    let query = wrap_query(
+        &re.replace_all(query_template, " ")
+            .replace("\n", "")
+            .replace("\"", "\\\"")
+            .replace("$GITHUB_ORG", &github_org)
+            .replace("$GITHUB_REPO", &github_repo),
+    );
+
+    println!("{}", query.to_string());
 
     let github = github::Github::new(
         github_token.to_string(),
         request_url.to_string(),
     );
 
-    let result = github.query(query.clone());
+    let result = github.query(query.to_string());
 
     for attempt in 1..=10 {
         if result.extract(PullRequestStates::Unknown).len() == 0 {
@@ -82,12 +90,6 @@ fn main() {
             for id in conflicting.into_iter() {
                 let update = update_string(id, re.clone());
 
-                // how to reuse the struct?
-
-                let github = github::Github::new(
-                    github_token.to_string(),
-                    request_url.to_string(),
-                );
                 github.mutate(update.clone());
             }
             break;

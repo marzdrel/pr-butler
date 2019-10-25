@@ -54,7 +54,7 @@ impl Github {
         }
     }
 
-    pub fn mutate(self, query: String) -> String {
+    pub fn mutate(&self, query: String) -> String {
         let data = self.github_response(query);
 
         println!("{:?}", data);
@@ -62,7 +62,7 @@ impl Github {
         data
     }
 
-    pub fn query(self, query: String) -> Vec<Node> {
+    pub fn query(&self, query: String) -> Vec<Node> {
         let data = self.github_response(query);
 
         match serde_json::from_str::<Response>(&data) {
@@ -85,12 +85,12 @@ impl Github {
         }
     }
 
-    fn github_response(self, query: String) -> String {
+    fn github_response(&self, query: String) -> String {
         let resp = self
             .client
             .post(&self.url)
             .body(query)
-            .bearer_auth(self.token)
+            .bearer_auth(&self.token)
             .send();
 
         let mut result = match resp {
