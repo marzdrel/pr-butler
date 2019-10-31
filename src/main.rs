@@ -10,7 +10,8 @@ use regex::Regex;
 use std::env;
 use std::{thread, time};
 
-fn update_string(object_id: String, re: Regex) -> String {
+fn update_string(object_id: String) -> String {
+    let re = Regex::new(r"\s+").unwrap();
     let raw_update = format!(
         r#"
           {{  
@@ -34,19 +35,8 @@ fn update_string(object_id: String, re: Regex) -> String {
         .to_string()
 }
 
-fn wrap_query(inner: &str) -> String {
-    format!("{{ \"query\": \"{}\" }}", inner)
-}
-
-fn main() {
-    dotenv().ok();
-
+fn query_string(github_org: String, github_repo: String) -> String {
     let re = Regex::new(r"\s+").unwrap();
-    let request_url = "https://api.github.com/graphql";
-    let github_token = env::var("GITHUB_TOKEN").unwrap();
-    let github_org = env::var("GITHUB_ORG").unwrap();
-    let github_repo = env::var("GITHUB_REPO").unwrap();
-
     let query_template = r#"
       { 
         repository(owner:"$GITHUB_ORG", name:"$GITHUB_REPO") {
@@ -74,10 +64,27 @@ fn main() {
             .replace("$GITHUB_REPO", &github_repo),
     );
 
+    query
+}
+
+fn wrap_query(inner: &str) -> String {
+    format!("{{ \"query\": \"{}\" }}", inner)
+}
+
+fn main() {
+    dotenv().ok();
+
+    let request_url = "https://api.github.com/graphql";
+    let github_token = env::var("GITHUB_TOKEN").unwrap();
+    let github_org = env::var("GITHUB_ORG").unwrap();
+    let github_repo = env::var("GITHUB_REPO").unwrap();
+
     let github = github::Github::new(
         github_token.to_string(),
         request_url.to_string(),
     );
+
+    let query = query_string(github_org, github_repo);
 
     let result = github.query(query.to_string());
 
@@ -86,7 +93,9 @@ fn main() {
             let conflicting =
                 result.extract(PullRequestStates::Conflicting);
             for id in conflicting.into_iter() {
-                let update = update_string(id, re.clone());
+                println!("Updating repo: {}", id);
+
+                let update = update_string(id);
 
                 github.mutate(update.clone());
             }
@@ -98,11 +107,14 @@ fn main() {
                     attempt
                 )
             }
+
             let delay = time::Duration::new(2 * attempt, 0);
+
             println!(
                 "Waiting for {} seconds before retry...",
                 delay.as_secs()
             );
+
             thread::sleep(delay);
         }
     }
