@@ -55,11 +55,7 @@ impl Github {
     }
 
     pub fn mutate(&self, query: String) -> String {
-        let data = self.github_response(query);
-
-        println!("{:?}", data);
-
-        data
+        self.github_response(query)
     }
 
     pub fn query(&self, query: String) -> Vec<Node> {
