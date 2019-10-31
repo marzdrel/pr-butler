@@ -74,8 +74,6 @@ fn main() {
             .replace("$GITHUB_REPO", &github_repo),
     );
 
-    println!("{}", query.to_string());
-
     let github = github::Github::new(
         github_token.to_string(),
         request_url.to_string(),
@@ -94,8 +92,17 @@ fn main() {
             }
             break;
         } else {
-            if attempt == 10 { /* error */ }
+            if attempt == 10 {
+                println!(
+                    "ERROR: There still conflicting PRs after {} tries",
+                    attempt
+                )
+            }
             let delay = time::Duration::new(2 * attempt, 0);
+            println!(
+                "Waiting for {} seconds before retry...",
+                delay.as_secs()
+            );
             thread::sleep(delay);
         }
     }
