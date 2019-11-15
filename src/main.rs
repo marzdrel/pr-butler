@@ -27,14 +27,17 @@ fn main() {
 
     let result = github.query(query.to_string());
 
+    println!("QUERY: {:?}", result);
+
     for attempt in 1..=10 {
         if result.extract(PullRequestStates::Unknown).len() == 0 {
             let conflicting =
                 result.extract(PullRequestStates::Conflicting);
-            for id in conflicting.into_iter() {
-                println!("Updating repo: {}", id);
+            for node in conflicting.into_iter() {
+                println!("Updating repo: {}", node.inspect());
 
-                let update = gh_add_labels(LABEL.to_string(), id);
+                let update =
+                    gh_add_labels(LABEL.to_string(), node.id.clone());
 
                 println!("Response -> {}", github.mutate(update.clone()));
             }

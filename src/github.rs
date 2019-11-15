@@ -5,14 +5,13 @@ pub mod templates;
 pub static LABEL: &str = "MDU6TGFiZWwxNjM0NjMyMDAw";
 
 pub trait Extract {
-    fn extract(&self, key: PullRequestStates) -> Vec<String>;
+    fn extract(&self, key: PullRequestStates) -> Vec<&Node>;
 }
 
 impl Extract for Vec<Node> {
-    fn extract(&self, key: PullRequestStates) -> Vec<String> {
+    fn extract(&self, key: PullRequestStates) -> Vec<&Node> {
         self.into_iter()
             .filter(|node| key == node.mergeable)
-            .map(|node| node.id.clone())
             .collect()
     }
 }
@@ -57,7 +56,22 @@ impl Github {
     }
 
     pub fn mutate(&self, query: String) -> String {
-        self.github_response(query)
+        let data = self.github_response(query);
+
+        match serde_json::from_str::<Response>(&data) {
+            Ok(response) => match response.errors {
+                Some(value) => value[0].message.clone(),
+                None => data,
+            },
+            Err(err) => {
+                println!(
+                    "ERROR: Cannot parse JSON result returned from Github.\n\n\
+                     Message: {}\nOutput: {}\n",
+                    err, &data,
+                );
+                std::process::exit(253);
+            }
+        }
     }
 
     pub fn query(&self, query: String) -> Vec<Node> {
@@ -67,6 +81,7 @@ impl Github {
             Ok(response) => response
                 .data
                 .repository
+                .unwrap()
                 .pull_requests
                 .edges
                 .into_iter()
@@ -106,14 +121,26 @@ impl Github {
     }
 }
 
+impl Node {
+    pub fn inspect(&self) -> String {
+        format!("#{} {}", &self.number, &self.title)
+    }
+}
+
 #[derive(Deserialize, Debug)]
 pub struct Response {
     pub data: Data,
+    pub errors: Option<Vec<Errors>>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct Data {
-    pub repository: Repository,
+    pub repository: Option<Repository>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Errors {
+    pub message: String,
 }
 
 #[derive(Deserialize, Debug)]
