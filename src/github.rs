@@ -1,5 +1,7 @@
 use serde::Deserialize;
 
+pub mod templates;
+
 pub static LABEL: &str = "MDU6TGFiZWwxNjM0NjMyMDAw";
 
 pub trait Extract {
