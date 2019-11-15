@@ -5,71 +5,10 @@ extern crate serde_json;
 mod github;
 
 use dotenv::dotenv;
+use github::templates::{gh_add_labels, gh_pull_requests};
 use github::{Extract, PullRequestStates, LABEL};
-use regex::Regex;
 use std::env;
 use std::{thread, time};
-
-fn update_string(object_id: String) -> String {
-    let re = Regex::new(r"\s+").unwrap();
-    let raw_update = format!(
-        r#"
-          {{  
-            "query": "mutation {{
-              addLabelsToLabelable(input:
-                {{
-                  labelIds:\"{}\",
-                  labelableId:\"{}\"
-                }}
-              ) 
-              {{
-                clientMutationId
-              }}
-            }}"
-          }}
-        "#,
-        LABEL, object_id
-    );
-
-    re.replace_all(&raw_update.replace("\n", ""), " ")
-        .to_string()
-}
-
-fn query_string(github_org: String, github_repo: String) -> String {
-    let re = Regex::new(r"\s+").unwrap();
-    let query_template = r#"
-      { 
-        repository(owner:"$GITHUB_ORG", name:"$GITHUB_REPO") {
-          label(name: "conflicting") {
-            id
-          }
-          pullRequests(last: 100, states: OPEN) {
-            edges {
-              node {
-                id
-                number
-                mergeable
-              }
-            }
-          }
-        }
-      }
-    "#;
-
-    let query = wrap_query(
-        &re.replace_all(query_template, " ")
-            .replace("\n", "")
-            .replace("\"", "\\\"")
-            .replace("$GITHUB_ORG", &github_org)
-            .replace("$GITHUB_REPO", &github_repo),
-    );
-
-    query
-}
-
-fn wrap_query(inner: &str) -> String {
-    format!("{{ \"query\": \"{}\" }}", inner)
-}
 
 fn main() {
     dotenv().ok();
@@ -84,7 +23,7 @@ fn main() {
         request_url.to_string(),
     );
 
-    let query = query_string(github_org, github_repo);
+    let query = gh_pull_requests(github_org, github_repo);
 
     let result = github.query(query.to_string());
 
@@ -95,9 +34,9 @@ fn main() {
             for id in conflicting.into_iter() {
                 println!("Updating repo: {}", id);
 
-                let update = update_string(id);
+                let update = gh_add_labels(LABEL.to_string(), id);
 
-                github.mutate(update.clone());
+                println!("Response -> {}", github.mutate(update.clone()));
             }
             break;
         } else {
@@ -105,7 +44,8 @@ fn main() {
                 println!(
                     "ERROR: There still conflicting PRs after {} tries",
                     attempt
-                )
+                );
+                break;
             }
 
             let delay = time::Duration::new(2 * attempt, 0);
