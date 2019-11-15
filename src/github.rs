@@ -142,5 +142,6 @@ pub struct Edge {
 pub struct Node {
     pub number: u32,
     pub id: String,
+    pub title: String,
     pub mergeable: String,
 }

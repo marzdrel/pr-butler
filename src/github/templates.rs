@@ -14,6 +14,7 @@ pub fn gh_pull_requests(
             edges {
               node {
                 id
+                title
                 number
                 mergeable
               }
