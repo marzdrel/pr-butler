@@ -2,8 +2,6 @@ use serde::Deserialize;
 
 pub mod templates;
 
-pub static LABEL: &str = "MDU6TGFiZWwxNjM0NjMyMDAw";
-
 pub trait Extract {
     fn extract(&self, key: PullRequestStates) -> Vec<&Node>;
 }
@@ -60,12 +58,15 @@ impl Github {
 
         match serde_json::from_str::<Response>(&data) {
             Ok(response) => match response.errors {
-                Some(value) => value[0].message.clone(),
-                None => data,
+                Some(value) => {
+                    format!("Error: {}", value[0].message.clone())
+                }
+                None => "Ok.".to_string(),
             },
             Err(err) => {
                 println!(
-                    "ERROR: Cannot parse JSON result returned from Github.\n\n\
+                    "ERROR: Cannot parse JSON result\
+                     returned from Github.\n\n\
                      Message: {}\nOutput: {}\n",
                     err, &data,
                 );
@@ -74,22 +75,27 @@ impl Github {
         }
     }
 
-    pub fn query(&self, query: String) -> Vec<Node> {
+    pub fn query(&self, query: String) -> (String, Vec<Node>) {
         let data = self.github_response(query);
 
         match serde_json::from_str::<Response>(&data) {
-            Ok(response) => response
-                .data
-                .repository
-                .unwrap()
-                .pull_requests
-                .edges
-                .into_iter()
-                .map(|edge| edge.node)
-                .collect(),
+            Ok(response) => {
+                let repository = response.data.repository.unwrap();
+
+                let nodes = repository
+                    .pull_requests
+                    .edges
+                    .into_iter()
+                    .map(|edge| edge.node)
+                    .collect();
+
+                let label = repository.label.id;
+                (label, nodes)
+            }
             Err(err) => {
                 println!(
-                    "ERROR: Cannot parse JSON result returned from Github.\n\n\
+                    "ERROR: Cannot parse JSON result\
+                     returned from Github.\n\n\
                      Message: {}\nOutput: {}\n",
                     err, &data,
                 );

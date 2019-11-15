@@ -6,7 +6,7 @@ mod github;
 
 use dotenv::dotenv;
 use github::templates::{gh_add_labels, gh_pull_requests};
-use github::{Extract, PullRequestStates, LABEL};
+use github::{Extract, PullRequestStates};
 use std::env;
 use std::{thread, time};
 
@@ -25,21 +25,20 @@ fn main() {
 
     let query = gh_pull_requests(github_org, github_repo);
 
-    let result = github.query(query.to_string());
+    let (label, result) = github.query(query.to_string());
 
-    println!("QUERY: {:?}", result);
+    // println!("QUERY: {:?}", result);
 
     for attempt in 1..=10 {
         if result.extract(PullRequestStates::Unknown).len() == 0 {
             let conflicting =
                 result.extract(PullRequestStates::Conflicting);
             for node in conflicting.into_iter() {
-                println!("Updating repo: {}", node.inspect());
+                print!("Updating repo: {} -> ", node.inspect());
 
-                let update =
-                    gh_add_labels(LABEL.to_string(), node.id.clone());
+                let update = gh_add_labels(label.clone(), node.id.clone());
 
-                println!("Response -> {}", github.mutate(update.clone()));
+                println!("{}", github.mutate(update.clone()));
             }
             break;
         } else {
