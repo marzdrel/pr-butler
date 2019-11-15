@@ -1,15 +1,5 @@
 use regex::Regex;
 
-trait Wrappable {
-    fn wrap_query(self) -> String;
-}
-
-impl Wrappable for String {
-    fn wrap_query(self) -> String {
-        format!("{{ \"query\": \"{}\" }}", self)
-    }
-}
-
 pub fn gh_pull_requests(
     github_org: String,
     github_repo: String,
@@ -58,6 +48,16 @@ pub fn gh_add_labels(label_id: String, labelable_id: String) -> String {
         query_template,
         vec![("$LABEL_ID", label_id), ("$LABELABLE_ID", labelable_id)],
     )
+}
+
+trait Wrappable {
+    fn wrap_query(self) -> String;
+}
+
+impl Wrappable for String {
+    fn wrap_query(self) -> String {
+        format!("{{ \"query\": \"{}\" }}", self)
+    }
 }
 
 fn prepare_query(
